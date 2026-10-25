@@ -5,6 +5,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>Jst.RepoTodo</PackageId>
+    <PackageVersion>0.1.0</PackageVersion>
+    <Authors>RepoTodo contributors</Authors>
+    <Description>A Git-working-tree-scoped todo list command-line tool.</Description>
+    <PackageTags>todo;git;cli</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>repotodo</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +27,10 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

@@ -17,6 +17,17 @@ dotnet test
 dotnet run --project src/RepoTodo.csproj -- --help
 ```
 
+After publishing, install it as a global .NET tool with:
+
+```sh
+dotnet tool install --global Jst.RepoTodo
+repotodo --help
+```
+
+## Publishing
+
+The `Publish .NET tool` GitHub Actions workflow builds, tests, packs, and pushes `Jst.RepoTodo` to NuGet.org when a `v*` tag is pushed. Configure a repository secret named `NUGET_API_KEY` with a NuGet.org API key before creating a release tag (for example, `v1.0.0`). The tag, without its leading `v`, is used as the package version.
+
 Run commands from the Git working tree whose todos you want to work with. For example:
 
 ```sh
