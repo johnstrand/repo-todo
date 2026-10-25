@@ -37,6 +37,10 @@ namespace RepoTodo.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("RepoId")
                         .HasColumnType("INTEGER");
 

@@ -11,7 +11,7 @@ namespace RepoTodo.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Remotes",
+                name: "Repos",
                 columns: table => new
                 {
                     RepoId = table.Column<int>(type: "INTEGER", nullable: false)
@@ -20,7 +20,7 @@ namespace RepoTodo.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Remotes", x => x.RepoId);
+                    table.PrimaryKey("PK_Repos", x => x.RepoId);
                 });
 
             migrationBuilder.CreateTable(
@@ -29,8 +29,9 @@ namespace RepoTodo.Migrations
                 {
                     TodoItemId = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    RemoteId = table.Column<int>(type: "INTEGER", nullable: false),
+                    RepoId = table.Column<int>(type: "INTEGER", nullable: true),
                     Title = table.Column<string>(type: "TEXT", nullable: false),
+                    Body = table.Column<string>(type: "TEXT", nullable: false),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
                     Tags = table.Column<string>(type: "TEXT", nullable: false)
                 },
@@ -38,11 +39,10 @@ namespace RepoTodo.Migrations
                 {
                     table.PrimaryKey("PK_TodoItems", x => x.TodoItemId);
                     table.ForeignKey(
-                        name: "FK_TodoItems_Remotes_RemoteId",
-                        column: x => x.RemoteId,
-                        principalTable: "Remotes",
-                        principalColumn: "RepoId",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_TodoItems_Repos_RepoId",
+                        column: x => x.RepoId,
+                        principalTable: "Repos",
+                        principalColumn: "RepoId");
                 });
 
             migrationBuilder.CreateTable(
@@ -67,9 +67,9 @@ namespace RepoTodo.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TodoItems_RemoteId",
+                name: "IX_TodoItems_RepoId",
                 table: "TodoItems",
-                column: "RemoteId");
+                column: "RepoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TodoItemSubtasks_TodoItemId",
@@ -87,7 +87,7 @@ namespace RepoTodo.Migrations
                 name: "TodoItems");
 
             migrationBuilder.DropTable(
-                name: "Remotes");
+                name: "Repos");
         }
     }
 }

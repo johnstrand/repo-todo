@@ -17,15 +17,11 @@ try
         return 1;
     }
 
-    Console.WriteLine($"Repository path: {repoPath}");
-
     var repo = new Repository(repoPath);
 
     Environment.CurrentDirectory = repo.Info.WorkingDirectory;
 
     var sessionId = SessionTracker.GetSessionId(repo);
-
-    Console.WriteLine($"Session ID: {sessionId}");
 
     TodoService.EnsureRepoExists(sessionId);
 

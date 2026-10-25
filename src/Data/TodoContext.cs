@@ -56,6 +56,7 @@ internal class TodoItem
     public int TodoItemId { get; set; }
     public int? RepoId { get; set; }
     public required string Title { get; set; }
+    public required string Body { get; set; }
     public TodoItemStatus Status { get; set; }
     public ICollection<string> Tags { get; set; } = [];
 

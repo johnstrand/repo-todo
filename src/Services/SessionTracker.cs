@@ -11,13 +11,7 @@ internal static class SessionTracker
             throw new InvalidOperationException("The repository has no commits.");
         }
 
-        var headCommit = gitRepo.Head.Tip;
-
-        if (headCommit is null)
-        {
-            throw new InvalidOperationException("The repository has no commits.");
-        }
-
+        var headCommit = gitRepo.Head.Tip ?? throw new InvalidOperationException("The repository has no commits.");
         return headCommit.Sha;
     }
 }

@@ -13,6 +13,10 @@ internal class CreateCommandSettings : CommandSettings
     [CommandOption("-t|--tag <tag>")]
     [Description("Repeatable list of tags for the todo item.")]
     public string[] Tags { get; set; } = [];
+
+    [CommandOption("-b|--body <body>")]
+    [Description("The body text of the todo item.")]
+    public string Body { get; set; } = "";
 }
 
 internal class CreateCommand : AsyncCommand<CreateCommandSettings>
@@ -24,7 +28,8 @@ internal class CreateCommand : AsyncCommand<CreateCommandSettings>
             Title = settings.Title,
             Status = TodoItemStatus.NotStarted,
             Tags = [.. settings.Tags],
-            RepoId = TodoService.RepoId
+            RepoId = TodoService.RepoId,
+            Body = settings.Body
         };
 
         var todoItem = await TodoService.AddTodoItem(newTodoItem);

@@ -10,8 +10,8 @@ using RepoTodo.Data;
 namespace RepoTodo.Migrations
 {
     [DbContext(typeof(TodoContext))]
-    [Migration("20261025094007_FixRepoNaming")]
-    partial class FixRepoNaming
+    [Migration("20261025094505_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -39,6 +39,10 @@ namespace RepoTodo.Migrations
                     b.Property<int>("TodoItemId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("RepoId")
                         .HasColumnType("INTEGER");
