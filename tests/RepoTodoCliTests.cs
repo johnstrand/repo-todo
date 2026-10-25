@@ -194,7 +194,7 @@ public sealed class RepoTodoCliTests
 
     private static async Task RewriteRepositoryIdentifierAsLegacyCommitAsync(string databasePath, string commitSha)
     {
-        await using var connection = new SqliteConnection($"Data Source={databasePath}");
+        await using var connection = new SqliteConnection($"Data Source={databasePath};Pooling=False");
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -210,7 +210,7 @@ public sealed class RepoTodoCliTests
     private sealed class TestEnvironment : IDisposable
     {
         private readonly string _root;
-        private readonly string _repoTodoProject;
+        private readonly string _repoTodoExecutable;
 
         public string DatabasePath { get; }
 
@@ -219,7 +219,16 @@ public sealed class RepoTodoCliTests
             _root = Path.Combine(Path.GetTempPath(), "RepoTodo.Tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_root);
             DatabasePath = Path.Combine(_root, "todos.db");
-            _repoTodoProject = Path.Combine(FindRepositoryRoot(), "src", "RepoTodo.csproj");
+            var buildConfiguration = Directory.GetParent(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))?.Name
+                ?? throw new DirectoryNotFoundException("Could not determine the test build configuration.");
+            var targetFramework = Path.GetFileName(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
+            var executableName = OperatingSystem.IsWindows() ? "RepoTodo.exe" : "RepoTodo";
+            _repoTodoExecutable = Path.Combine(FindRepositoryRoot(), "src", "bin", buildConfiguration, targetFramework, executableName);
+
+            if (!File.Exists(_repoTodoExecutable))
+            {
+                throw new FileNotFoundException("The built RepoTodo CLI executable was not found.", _repoTodoExecutable);
+            }
         }
 
         public TestRepository CreateRepository(string name)
@@ -227,15 +236,13 @@ public sealed class RepoTodoCliTests
             var path = Path.Combine(_root, name);
             Directory.CreateDirectory(path);
             Repository.Init(path);
-            return new TestRepository(path, DatabasePath, _repoTodoProject);
+            return new TestRepository(path, DatabasePath, _repoTodoExecutable);
         }
 
         public void Dispose()
         {
             if (Directory.Exists(_root))
             {
-                SqliteConnection.ClearAllPools();
-
                 foreach (var file in Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories))
                 {
                     File.SetAttributes(file, FileAttributes.Normal);
@@ -264,8 +271,10 @@ public sealed class RepoTodoCliTests
         }
     }
 
-    private sealed class TestRepository(string workingDirectory, string databasePath, string projectPath)
+    private sealed class TestRepository(string workingDirectory, string databasePath, string cliExecutablePath)
     {
+        private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(30);
+
         public string CreateCommit()
         {
             const string fileName = "test-commit.txt";
@@ -279,19 +288,13 @@ public sealed class RepoTodoCliTests
 
         public async Task<CommandResult> RunAsync(params string[] arguments)
         {
-            var startInfo = new ProcessStartInfo("dotnet")
+            var startInfo = new ProcessStartInfo(cliExecutablePath)
             {
                 WorkingDirectory = workingDirectory,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false
             };
-
-            startInfo.ArgumentList.Add("run");
-            startInfo.ArgumentList.Add("--no-build");
-            startInfo.ArgumentList.Add("--project");
-            startInfo.ArgumentList.Add(projectPath);
-            startInfo.ArgumentList.Add("--");
 
             foreach (var argument in arguments)
             {
@@ -304,7 +307,33 @@ public sealed class RepoTodoCliTests
                 ?? throw new InvalidOperationException("Could not start RepoTodo CLI process.");
             var standardOutput = process.StandardOutput.ReadToEndAsync();
             var standardError = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+
+            try
+            {
+                await process.WaitForExitAsync().WaitAsync(CommandTimeout);
+            }
+            catch (TimeoutException exception)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                }
+                catch (InvalidOperationException) when (process.HasExited)
+                {
+                    // The process exited between the timeout and the kill attempt.
+                }
+
+                await process.WaitForExitAsync();
+
+                var timedOutOutput = await standardOutput + await standardError;
+                var command = string.Join(" ", arguments);
+                throw new TimeoutException(
+                    $"RepoTodo command timed out after {CommandTimeout.TotalSeconds:0} seconds: {command}{Environment.NewLine}{timedOutOutput}",
+                    exception);
+            }
 
             return new CommandResult(
                 process.ExitCode,
