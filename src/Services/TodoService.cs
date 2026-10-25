@@ -82,6 +82,14 @@ internal static class TodoService
             .FirstOrDefaultAsync(t => t.TodoItemId == todoItemId && t.RepoId == RepoId);
     }
 
+    public static async Task<TodoItem?> GetTodoItemWithSubtasks(int todoItemId)
+    {
+        return await TodoContext.Instance.TodoItems
+            .Where(t => t.TodoItemId == todoItemId && t.RepoId == RepoId)
+            .Include(t => t.Subtasks)
+            .FirstOrDefaultAsync();
+    }
+
     public static async Task<TodoItemSubtask?> AddSubtask(int parentTodoItemId, string title)
     {
         var context = TodoContext.Instance;

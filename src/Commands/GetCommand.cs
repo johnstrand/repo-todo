@@ -21,7 +21,7 @@ internal class GetCommand : AsyncCommand<GetCommandSettings>
             return 1;
         }
 
-        var todoItem = await TodoService.GetTodoItem(todoItemId);
+        var todoItem = await TodoService.GetTodoItemWithSubtasks(todoItemId);
 
         if (todoItem is null)
         {
