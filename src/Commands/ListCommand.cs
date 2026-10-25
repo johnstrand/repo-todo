@@ -1,3 +1,4 @@
+using System.Text.Json;
 using RepoTodo.Data;
 using RepoTodo.Services;
 using Spectre.Console.Cli;
@@ -10,6 +11,10 @@ internal class ListCommandSettings : CommandSettings
     [CommandOption("-s|--status <status>")]
     [Description("Filter the list by status.")]
     public string? Status { get; set; }
+
+    [CommandOption("-j|--json")]
+    [Description("Output the list as JSON.")]
+    public bool Json { get; set; }
 }
 
 internal class ListCommand : AsyncCommand<ListCommandSettings>
@@ -31,6 +36,21 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
         }
 
         var todoItems = await TodoService.ListTodoItems(statusFilter);
+
+        if (settings.Json)
+        {
+            var items = todoItems.Select(t => new
+            {
+                id = t.TodoItemId,
+                title = t.Title,
+                status = t.Status.ToString(),
+                tags = t.Tags
+            });
+
+            Console.WriteLine(JsonSerializer.Serialize(items));
+
+            return 0;
+        }
 
         if (todoItems.Count == 0)
         {
