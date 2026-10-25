@@ -15,6 +15,26 @@ internal class ListCommandSettings : CommandSettings
     [CommandOption("-j|--json")]
     [Description("Output the list as JSON.")]
     public bool Json { get; set; }
+
+    [CommandOption("--skip <skip>")]
+    [Description("The number of todo items to skip.")]
+    public int? Skip { get; set; }
+
+    [CommandOption("--take <take>")]
+    [Description("The maximum number of todo items to return.")]
+    public int? Take { get; set; }
+
+    [CommandOption("--title <title>")]
+    [Description("Filter the list by title.")]
+    public string? Title { get; set; }
+
+    [CommandOption("--body <body>")]
+    [Description("Filter the list by body.")]
+    public string? Body { get; set; }
+
+    [CommandOption("-t|--tag <tag>")]
+    [Description("Filter the list by tag. Repeatable.")]
+    public string[] Tags { get; set; } = [];
 }
 
 internal class ListCommand : AsyncCommand<ListCommandSettings>
@@ -37,13 +57,43 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
 
         var todoItems = await TodoService.ListTodoItems(statusFilter);
 
+        var filtered = todoItems.AsEnumerable();
+
+        if (settings.Title is not null)
+        {
+            filtered = filtered.Where(t => t.Title.Contains(settings.Title, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (settings.Body is not null)
+        {
+            filtered = filtered.Where(t => t.Body.Contains(settings.Body, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (settings.Tags is not null && settings.Tags.Length > 0)
+        {
+            filtered = filtered.Where(t => settings.Tags!.Any(tag => t.Tags.Contains(tag)));
+        }
+
+        if (settings.Skip.HasValue)
+        {
+            filtered = filtered.Skip(settings.Skip.Value);
+        }
+
+        if (settings.Take.HasValue)
+        {
+            filtered = filtered.Take(settings.Take.Value);
+        }
+
+        var items = filtered.ToList();
+
         if (settings.Json)
         {
-            var items = todoItems.Select(t => new
+            var jsonItems = items.Select(t => new
             {
                 id = t.TodoItemId,
                 title = t.Title,
                 status = t.Status.ToString(),
+                body = t.Body,
                 tags = t.Tags,
                 subtasks = t.Subtasks.Select(s => new
                 {
@@ -53,19 +103,19 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
                 })
             });
 
-            Console.WriteLine(JsonSerializer.Serialize(items));
+            Console.WriteLine(JsonSerializer.Serialize(jsonItems));
 
             return 0;
         }
 
-        if (todoItems.Count == 0)
+        if (items.Count == 0)
         {
             Console.WriteLine("No todo items found.");
 
             return 0;
         }
 
-        foreach (var todoItem in todoItems)
+        foreach (var todoItem in items)
         {
             var tags = todoItem.Tags.Count > 0
                 ? $" [{string.Join(", ", todoItem.Tags.Select(tag => $"#{tag}"))}]"

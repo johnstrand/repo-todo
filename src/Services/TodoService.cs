@@ -34,7 +34,7 @@ internal static class TodoService
         return todoItem;
     }
 
-    public static async Task<List<TodoItem>> ListTodoItems(TodoItemStatus? statusFilter = null)
+    public static async Task<List<TodoItem>> ListTodoItems(TodoItemStatus? statusFilter = null, int? skip = null, int? take = null)
     {
         var context = TodoContext.Instance;
         var itemsQuery = context.TodoItems.AsQueryable().Include(t => t.Subtasks);
@@ -42,6 +42,16 @@ internal static class TodoService
         IQueryable<TodoItem> filteredQuery = statusFilter.HasValue
             ? itemsQuery.Where(t => t.Status == statusFilter.Value)
             : itemsQuery.Where(t => t.Status != TodoItemStatus.Completed);
+
+        if (skip.HasValue)
+        {
+            filteredQuery = filteredQuery.Skip(skip.Value);
+        }
+
+        if (take.HasValue)
+        {
+            filteredQuery = filteredQuery.Take(take.Value);
+        }
 
         return await filteredQuery.OrderBy(t => t.TodoItemId).ToListAsync();
     }
