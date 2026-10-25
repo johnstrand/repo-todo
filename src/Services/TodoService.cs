@@ -7,22 +7,37 @@ internal static class TodoService
 {
     public static int RepoId { get; set; }
 
-    public static void EnsureRepoExists(string repoIdentifier)
+    public static async Task EnsureRepoExists(string repoIdentifier, Func<string, bool> isLegacyCommitIdentifier)
     {
         var context = TodoContext.Instance;
-        var existingRepo = context.Repos.FirstOrDefault(r => r.Identifier == repoIdentifier);
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        var existingRepo = await context.Repos.FirstOrDefaultAsync(r => r.Identifier == repoIdentifier);
 
         if (existingRepo is null)
         {
             var newRepo = new Repo { Identifier = repoIdentifier };
             context.Repos.Add(newRepo);
-            context.SaveChanges();
-            RepoId = newRepo.RepoId;
+            await context.SaveChangesAsync();
+            existingRepo = newRepo;
         }
-        else
+
+        RepoId = existingRepo.RepoId;
+
+        var oldRepositories = await context.Repos
+            .Where(r => r.RepoId != RepoId)
+            .ToListAsync();
+
+        foreach (var oldRepository in oldRepositories.Where(r => isLegacyCommitIdentifier(r.Identifier)))
         {
-            RepoId = existingRepo.RepoId;
+            await context.TodoItems
+                .Where(t => t.RepoId == oldRepository.RepoId)
+                .ExecuteUpdateAsync(items => items.SetProperty(t => t.RepoId, RepoId));
+
+            context.Repos.Remove(oldRepository);
         }
+
+        await context.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public static async Task<TodoItem> AddTodoItem(TodoItem todoItem)

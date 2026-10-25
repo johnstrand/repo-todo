@@ -21,9 +21,11 @@ try
 
     Environment.CurrentDirectory = repo.Info.WorkingDirectory;
 
-    var sessionId = SessionTracker.GetSessionId(repo);
-
-    TodoService.EnsureRepoExists(sessionId);
+    var repoIdentifier = RepositoryIdentity.GetRepositoryIdentifier(repo);
+    await TodoService.EnsureRepoExists(repoIdentifier, identifier =>
+        identifier.Length == 40 &&
+        identifier.All(Uri.IsHexDigit) &&
+        repo.Lookup<Commit>(identifier) is not null);
 
     var app = new CommandApp();
 

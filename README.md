@@ -5,7 +5,7 @@ RepoTodo is a command-line todo manager for work in a Git repository. It stores 
 ## Requirements
 
 - .NET 10 SDK
-- Run RepoTodo from inside a Git working tree. The current version also requires at least one commit.
+- Run RepoTodo from inside a Git working tree. An initial commit is not required.
 
 ## Build and run
 
@@ -73,4 +73,4 @@ dotnet run --project src/RepoTodo.csproj -- subtask list 3
 
 ## Data storage
 
-The SQLite database is created under the current user's .NET `LocalApplicationData` directory, in a `RepoTodo/todo.db` subdirectory. EF Core migrations are applied automatically when the application starts.
+The SQLite database is created under the current user's .NET `LocalApplicationData` directory, in a `RepoTodo/todo.db` subdirectory. EF Core migrations are applied automatically when the application starts. Todo data is associated with the local working-tree path, so separate clones or worktrees have separate lists. Legacy data associated with commits in a working tree is migrated to its stable identity on first use.
