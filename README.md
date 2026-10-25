@@ -13,6 +13,7 @@ From the repository root:
 
 ```sh
 dotnet build
+dotnet test
 dotnet run --project src/RepoTodo.csproj -- --help
 ```
 
@@ -73,4 +74,4 @@ dotnet run --project src/RepoTodo.csproj -- subtask list 3
 
 ## Data storage
 
-The SQLite database is created under the current user's .NET `LocalApplicationData` directory, in a `RepoTodo/todo.db` subdirectory. EF Core migrations are applied automatically when the application starts. Todo data is associated with the local working-tree path, so separate clones or worktrees have separate lists. Legacy data associated with commits in a working tree is migrated to its stable identity on first use.
+The SQLite database is created under the current user's .NET `LocalApplicationData` directory, in a `RepoTodo/todo.db` subdirectory. Set `REPOTODO_DB_PATH` to use a specific database file (for example, for tests). EF Core migrations are applied automatically when the application starts. Todo data is associated with the local working-tree path, so separate clones or worktrees have separate lists. Legacy data associated with commits in a working tree is migrated to its stable identity on first use.

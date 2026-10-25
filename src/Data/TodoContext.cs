@@ -11,6 +11,15 @@ internal class TodoContext : DbContext
 
     public TodoContext()
     {
+        var configuredDbPath = Environment.GetEnvironmentVariable("REPOTODO_DB_PATH");
+
+        if (!string.IsNullOrWhiteSpace(configuredDbPath))
+        {
+            DbPath = Path.GetFullPath(configuredDbPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(DbPath)!);
+            return;
+        }
+
         var folder = Environment.SpecialFolder.LocalApplicationData;
         var path = Environment.GetFolderPath(folder);
 
