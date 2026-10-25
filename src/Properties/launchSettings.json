@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RepoTodo": {
+      "commandName": "Project",
+      "commandLineArgs": "create \"new foo\" -t bar -t baz"
+    }
+  }
+}

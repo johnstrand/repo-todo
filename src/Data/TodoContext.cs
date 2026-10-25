@@ -59,7 +59,7 @@ internal class TodoItem
     public TodoItemStatus Status { get; set; }
     public ICollection<string> Tags { get; set; } = [];
 
-    public Repo? Remote { get; set; }
+    public Repo? Repo { get; set; }
 
     public ICollection<TodoItemSubtask> Subtasks { get; set; } = [];
 }
@@ -76,6 +76,7 @@ internal class TodoItemSubtask
 internal enum TodoItemStatus
 {
     NotStarted,
+    Ready,
     InProgress,
     OnHold,
     Completed

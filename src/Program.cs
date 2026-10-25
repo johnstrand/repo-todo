@@ -2,11 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using RepoTodo.Data;
 using RepoTodo.Services;
+using Spectre.Console.Cli;
 
 try
 {
     await TodoContext.Instance.Database.MigrateAsync();
-    Console.WriteLine("Hello, World!");
 
     var repoPath = Repository.Discover(Environment.CurrentDirectory);
 
@@ -25,7 +25,26 @@ try
 
     var sessionId = SessionTracker.GetSessionId(repo);
 
-    return 0;
+    Console.WriteLine($"Session ID: {sessionId}");
+
+    TodoService.EnsureRepoExists(sessionId);
+
+    var app = new CommandApp();
+
+    app.Configure(config =>
+    {
+        config.SetApplicationName("RepoTodo");
+        config.AddCommand<RepoTodo.Commands.CreateCommand>("create")
+            .WithDescription("Create a new todo item.");
+        config.AddCommand<RepoTodo.Commands.ListCommand>("list")
+            .WithDescription("List todo items.");
+        config.AddCommand<RepoTodo.Commands.CompleteCommand>("complete")
+            .WithDescription("Mark a todo item as completed.");
+        config.AddCommand<RepoTodo.Commands.DeleteCommand>("delete")
+            .WithDescription("Delete a todo item.");
+    });
+
+    return await app.RunAsync(args);
 }
 catch (Exception ex)
 {
