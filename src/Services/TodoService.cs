@@ -234,6 +234,13 @@ internal sealed class TodoService(TodoContext context, int repoId)
             return;
         }
 
+        var syncState = await context.TodoGitHubSyncStates
+            .FirstOrDefaultAsync(state => state.RepoId == repoId && state.TodoItemId == todoItemId);
+        if (syncState is not null)
+        {
+            syncState.IsDeleted = true;
+        }
+
         context.TodoItems.Remove(todoItem);
         await context.SaveChangesAsync();
     }

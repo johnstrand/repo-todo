@@ -47,6 +47,7 @@ list [-s|--status <status>] [-j|--json] [--skip <count>] [--take <count>]
      [--title <text>] [--body <text>] [-t|--tag <tag> ...]
 export <file> [--force]
 import <file>
+sync
 get <id>
 update <id> [--title <title>] [--body <body>]
 complete <id>
@@ -70,6 +71,14 @@ dotnet run --project src/RepoTodo.csproj -- import todos.json
 `export` writes a versioned JSON backup containing every task status, body, tag, and subtask. Existing files are not overwritten unless `--force` is supplied. `import` adds the file's tasks and subtasks to the current working tree and assigns new local IDs; it does not replace existing todos. Importing the same file more than once adds duplicates.
 
 The JSON document has a `formatVersion` (currently `1`), an `exportedAtUtc` timestamp, and an `items` array. Task and subtask IDs are intentionally omitted so imports receive fresh IDs in the destination database.
+
+## GitHub synchronization
+
+Set `TODO_GITHUB_TOKEN` to a GitHub token with permission to read and write Issues in the repository, then run `repotodo sync` from a clone with a GitHub remote. The `origin` remote is preferred; another GitHub remote is used if `origin` is not a GitHub URL. The token is read from the environment and is not stored in the todo database.
+
+Sync is bidirectional but only manages issues marked with the `repotodo` label. It imports marked issues and publishes local todos as issues. Titles and bodies map to issue titles and bodies; task statuses use `repotodo-status-*` labels (completed tasks also close the issue), tags use `repotodo-tag-*` labels, and subtasks appear as issue-body checklists. GitHub limits label names to 50 characters, so longer tags are retained in RepoTodo's issue metadata rather than shown as labels. RepoTodo keeps a local issue mapping and last-synced snapshot for conflict detection. If both sides changed differently, sync reports a conflict and does not overwrite either side; align the local todo or GitHub issue, then sync again.
+
+Deleting a linked todo closes the GitHub issue and removes RepoTodo's management labels. GitHub issues cannot be deleted through the API. Ordinary issues without the `repotodo` label are not imported or modified.
 
 ## Subtask commands
 

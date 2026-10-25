@@ -5,11 +5,15 @@ namespace RepoTodo.Commands;
 
 internal static class TodoCommandApp
 {
-    public static CommandApp Create(TodoService todoService, TodoTransferService transferService)
+    public static CommandApp Create(
+        TodoService todoService,
+        TodoTransferService transferService,
+        GitHubIssueSyncService syncService)
     {
         var typeRegistrar = new TypeRegistrar();
         typeRegistrar.RegisterInstance(typeof(TodoService), todoService);
         typeRegistrar.RegisterInstance(typeof(TodoTransferService), transferService);
+        typeRegistrar.RegisterInstance(typeof(GitHubIssueSyncService), syncService);
         var app = new CommandApp(typeRegistrar);
 
         app.Configure(config =>
@@ -39,6 +43,8 @@ internal static class TodoCommandApp
                 .WithDescription("Export todo items and subtasks as versioned JSON.");
             config.AddCommand<ImportCommand>("import")
                 .WithDescription("Import todo items and subtasks from a JSON export.");
+            config.AddCommand<SyncCommand>("sync")
+                .WithDescription("Synchronize todos with RepoTodo-managed GitHub Issues.");
             config.AddCommand<GetCommand>("get")
                 .WithDescription("Get a single todo item.");
             config.AddCommand<UpdateCommand>("update")

@@ -31,6 +31,39 @@ namespace RepoTodo.Migrations
                     b.ToTable("Repos");
                 });
 
+            modelBuilder.Entity("RepoTodo.Data.TodoGitHubSyncState", b =>
+                {
+                    b.Property<int>("TodoGitHubSyncStateId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("GitHubIssueNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastSyncedSnapshot")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RepoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("TodoItemId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("TodoGitHubSyncStateId");
+
+                    b.HasIndex("RepoId", "GitHubIssueNumber")
+                        .IsUnique();
+
+                    b.HasIndex("RepoId", "TodoItemId")
+                        .IsUnique();
+
+                    b.ToTable("TodoGitHubSyncStates");
+                });
+
             modelBuilder.Entity("RepoTodo.Data.TodoItem", b =>
                 {
                     b.Property<int>("TodoItemId")

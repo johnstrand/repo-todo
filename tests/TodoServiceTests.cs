@@ -226,6 +226,8 @@ public sealed class TodoServiceTests
     {
         var helpResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(new[] { "--help" });
         Assert.AreEqual(0, helpResult);
+        Assert.AreEqual(0, await CreateCommandApp(_firstRepository, _firstRepositoryId)
+            .RunAsync(new[] { "sync", "--help" }));
 
         var createResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(
             new[] { "create", "Command-layer task", "--body", "Created without a child process", "--tag", "unit" });
@@ -246,6 +248,9 @@ public sealed class TodoServiceTests
         Assert.AreNotEqual(0, invalidStatusResult);
         var invalidPaginationResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(new[] { "list", "--skip", "-1" });
         Assert.AreNotEqual(0, invalidPaginationResult);
+        var missingGitHubConfigurationResult = await CreateCommandApp(_firstRepository, _firstRepositoryId)
+            .RunAsync(new[] { "sync" });
+        Assert.AreNotEqual(0, missingGitHubConfigurationResult);
     }
 
     [TestMethod]
@@ -369,7 +374,11 @@ public sealed class TodoServiceTests
 
     private CommandApp CreateCommandApp(TodoService service, int repositoryId)
     {
-        return TodoCommandApp.Create(service, new TodoTransferService(_context, repositoryId));
+        var httpClient = new HttpClient();
+        return TodoCommandApp.Create(
+            service,
+            new TodoTransferService(_context, repositoryId),
+            new GitHubIssueSyncService(_context, repositoryId, null, null, httpClient));
     }
 
     private static Task<TodoItem> AddTodoAsync(

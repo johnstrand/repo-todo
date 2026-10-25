@@ -22,6 +22,7 @@ internal class TodoContext : DbContext
     public DbSet<Repo> Repos => Set<Repo>();
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
     public DbSet<TodoItemSubtask> TodoItemSubtasks => Set<TodoItemSubtask>();
+    public DbSet<TodoGitHubSyncState> TodoGitHubSyncStates => Set<TodoGitHubSyncState>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +35,14 @@ internal class TodoContext : DbContext
                     (c1, c2) => c1!.SequenceEqual(c2!),
                     c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
                     c => c.ToList()));
+
+        modelBuilder.Entity<TodoGitHubSyncState>()
+            .HasIndex(state => new { state.RepoId, state.GitHubIssueNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<TodoGitHubSyncState>()
+            .HasIndex(state => new { state.RepoId, state.TodoItemId })
+            .IsUnique();
     }
 }
 
@@ -64,6 +73,16 @@ internal class TodoItemSubtask
     public required string Title { get; set; }
     public TodoItemStatus Status { get; set; }
     public TodoItem? TodoItem { get; set; }
+}
+
+internal class TodoGitHubSyncState
+{
+    public int TodoGitHubSyncStateId { get; set; }
+    public int RepoId { get; set; }
+    public int? TodoItemId { get; set; }
+    public int GitHubIssueNumber { get; set; }
+    public required string LastSyncedSnapshot { get; set; }
+    public bool IsDeleted { get; set; }
 }
 
 internal enum TodoItemStatus

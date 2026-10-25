@@ -37,9 +37,17 @@ try
         identifier.All(Uri.IsHexDigit) &&
         repo.Lookup<Commit>(identifier) is not null);
 
+    using var githubHttpClient = new HttpClient();
+    var githubSyncService = new GitHubIssueSyncService(
+        todoContext,
+        repoId,
+        GitHubRepository.FromRemoteUrls(repo.Network.Remotes.Select(remote => (remote.Name, remote.Url))),
+        Environment.GetEnvironmentVariable("TODO_GITHUB_TOKEN"),
+        githubHttpClient);
     var app = TodoCommandApp.Create(
         new TodoService(todoContext, repoId),
-        new TodoTransferService(todoContext, repoId));
+        new TodoTransferService(todoContext, repoId),
+        githubSyncService);
     return await app.RunAsync(args);
 }
 catch (Exception ex)
