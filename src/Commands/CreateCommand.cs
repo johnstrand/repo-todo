@@ -19,8 +19,12 @@ internal class CreateCommandSettings : CommandSettings
     public string Body { get; set; } = "";
 }
 
-internal class CreateCommand : AsyncCommand<CreateCommandSettings>
+internal class CreateCommand : TodoAsyncCommand<CreateCommandSettings>
 {
+    public CreateCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, CreateCommandSettings settings, CancellationToken cancellationToken)
     {
         var newTodoItem = new TodoItem
@@ -28,7 +32,6 @@ internal class CreateCommand : AsyncCommand<CreateCommandSettings>
             Title = settings.Title,
             Status = TodoItemStatus.NotStarted,
             Tags = [.. settings.Tags],
-            RepoId = TodoService.RepoId,
             Body = settings.Body
         };
 

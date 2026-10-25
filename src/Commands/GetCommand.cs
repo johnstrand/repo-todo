@@ -10,12 +10,17 @@ internal class GetCommandSettings : CommandSettings
     public required string Id { get; set; }
 }
 
-internal class GetCommand : AsyncCommand<GetCommandSettings>
+internal class GetCommand : TodoAsyncCommand<GetCommandSettings>
 {
+    public GetCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, GetCommandSettings settings, CancellationToken cancellationToken)
     {
-        if (!CommandInputValidation.TryParsePositiveId(settings.Id, "todo item id", out var todoItemId))
+        if (!CommandInputValidation.TryParsePositiveId(settings.Id, out var todoItemId))
         {
+            Console.WriteLine($"Invalid todo item id: {settings.Id}");
             return 1;
         }
 

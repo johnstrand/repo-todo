@@ -6,39 +6,22 @@ namespace RepoTodo.Data;
 
 internal class TodoContext : DbContext
 {
-    public static TodoContext Instance { get; } = new();
-    public string DbPath { get; }
-
-    public TodoContext()
+    public TodoContext(DbContextOptions<TodoContext> options) : base(options)
     {
-        var configuredDbPath = Environment.GetEnvironmentVariable("REPOTODO_DB_PATH");
+    }
 
-        if (!string.IsNullOrWhiteSpace(configuredDbPath))
-        {
-            DbPath = Path.GetFullPath(configuredDbPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(DbPath)!);
-            return;
-        }
-
+    public static string GetDefaultDbPath()
+    {
         var folder = Environment.SpecialFolder.LocalApplicationData;
         var path = Environment.GetFolderPath(folder);
-
         var dbDirectory = Path.Combine(path, "RepoTodo");
-
-        if (!Directory.Exists(dbDirectory))
-        {
-            Directory.CreateDirectory(dbDirectory);
-        }
-
-        DbPath = Path.Join(dbDirectory, "todo.db");
+        Directory.CreateDirectory(dbDirectory);
+        return Path.Combine(dbDirectory, "todo.db");
     }
 
     public DbSet<Repo> Repos => Set<Repo>();
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
     public DbSet<TodoItemSubtask> TodoItemSubtasks => Set<TodoItemSubtask>();
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlite($"Data Source={DbPath}");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -19,12 +19,17 @@ internal class UpdateCommandSettings : CommandSettings
     public string? Body { get; set; }
 }
 
-internal class UpdateCommand : AsyncCommand<UpdateCommandSettings>
+internal class UpdateCommand : TodoAsyncCommand<UpdateCommandSettings>
 {
+    public UpdateCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, UpdateCommandSettings settings, CancellationToken cancellationToken)
     {
-        if (!CommandInputValidation.TryParsePositiveId(settings.Id, "todo item id", out var todoItemId))
+        if (!CommandInputValidation.TryParsePositiveId(settings.Id, out var todoItemId))
         {
+            Console.WriteLine($"Invalid todo item id: {settings.Id}");
             return 1;
         }
 

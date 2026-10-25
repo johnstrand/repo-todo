@@ -37,19 +37,18 @@ internal class ListCommandSettings : CommandSettings
     public string[] Tags { get; set; } = [];
 }
 
-internal class ListCommand : AsyncCommand<ListCommandSettings>
+internal class ListCommand : TodoAsyncCommand<ListCommandSettings>
 {
+    public ListCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, ListCommandSettings settings, CancellationToken cancellationToken)
     {
-        if (settings.Skip is < 0)
+        var paginationError = CommandInputValidation.ValidatePagination(settings.Skip, settings.Take);
+        if (paginationError is not null)
         {
-            Console.WriteLine("--skip must be zero or greater.");
-            return 1;
-        }
-
-        if (settings.Take is < 0)
-        {
-            Console.WriteLine("--take must be zero or greater.");
+            Console.WriteLine(paginationError);
             return 1;
         }
 
@@ -57,8 +56,7 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
 
         if (settings.Status is not null)
         {
-            if (!Enum.TryParse<TodoItemStatus>(settings.Status, ignoreCase: true, out var parsedStatus) ||
-                !Enum.IsDefined(typeof(TodoItemStatus), parsedStatus))
+            if (!CommandInputValidation.TryParseStatus(settings.Status, out var parsedStatus))
             {
                 Console.WriteLine($"Unknown status: {settings.Status}");
 

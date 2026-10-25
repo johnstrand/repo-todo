@@ -17,6 +17,8 @@ dotnet test
 dotnet run --project src/RepoTodo.csproj -- --help
 ```
 
+Tests exercise the services in-process against isolated in-memory SQLite databases; they do not launch the CLI or touch the normal user database.
+
 After publishing, install it as a global .NET tool with:
 
 ```sh

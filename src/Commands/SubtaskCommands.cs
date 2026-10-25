@@ -10,7 +10,13 @@ internal static class SubtaskCommandHelpers
 {
     public static bool TryParseTaskId(string value, out int taskId)
     {
-        return CommandInputValidation.TryParsePositiveId(value, "task id", out taskId);
+        if (CommandInputValidation.TryParsePositiveId(value, out taskId))
+        {
+            return true;
+        }
+
+        Console.WriteLine($"Invalid task id: {value}");
+        return false;
     }
 
     public static bool TryParseIds(string taskIdValue, string subtaskIdValue, out int taskId, out int subtaskId)
@@ -21,7 +27,13 @@ internal static class SubtaskCommandHelpers
             return false;
         }
 
-        return CommandInputValidation.TryParsePositiveId(subtaskIdValue, "subtask id", out subtaskId);
+        if (CommandInputValidation.TryParsePositiveId(subtaskIdValue, out subtaskId))
+        {
+            return true;
+        }
+
+        Console.WriteLine($"Invalid subtask id: {subtaskIdValue}");
+        return false;
     }
 }
 
@@ -34,8 +46,12 @@ internal class SubtaskAddCommandSettings : CommandSettings
     public required string Title { get; set; }
 }
 
-internal class SubtaskAddCommand : AsyncCommand<SubtaskAddCommandSettings>
+internal class SubtaskAddCommand : TodoAsyncCommand<SubtaskAddCommandSettings>
 {
+    public SubtaskAddCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, SubtaskAddCommandSettings settings, CancellationToken cancellationToken)
     {
         if (!SubtaskCommandHelpers.TryParseTaskId(settings.TaskId, out var taskId))
@@ -76,8 +92,12 @@ internal class SubtaskListCommandSettings : CommandSettings
     public bool Json { get; set; }
 }
 
-internal class SubtaskListCommand : AsyncCommand<SubtaskListCommandSettings>
+internal class SubtaskListCommand : TodoAsyncCommand<SubtaskListCommandSettings>
 {
+    public SubtaskListCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, SubtaskListCommandSettings settings, CancellationToken cancellationToken)
     {
         if (!SubtaskCommandHelpers.TryParseTaskId(settings.TaskId, out var taskId))
@@ -94,8 +114,7 @@ internal class SubtaskListCommand : AsyncCommand<SubtaskListCommandSettings>
         TodoItemStatus? statusFilter = null;
         if (settings.Status is not null)
         {
-            if (!Enum.TryParse<TodoItemStatus>(settings.Status, ignoreCase: true, out var parsedStatus) ||
-                !Enum.IsDefined(typeof(TodoItemStatus), parsedStatus))
+            if (!CommandInputValidation.TryParseStatus(settings.Status, out var parsedStatus))
             {
                 Console.WriteLine($"Unknown status: {settings.Status}");
                 return 1;
@@ -144,8 +163,12 @@ internal class SubtaskGetCommandSettings : CommandSettings
     public required string SubtaskId { get; set; }
 }
 
-internal class SubtaskGetCommand : AsyncCommand<SubtaskGetCommandSettings>
+internal class SubtaskGetCommand : TodoAsyncCommand<SubtaskGetCommandSettings>
 {
+    public SubtaskGetCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, SubtaskGetCommandSettings settings, CancellationToken cancellationToken)
     {
         if (!SubtaskCommandHelpers.TryParseIds(settings.TaskId, settings.SubtaskId, out var taskId, out var subtaskId))
@@ -178,8 +201,12 @@ internal class SubtaskUpdateCommandSettings : CommandSettings
     public string? Title { get; set; }
 }
 
-internal class SubtaskUpdateCommand : AsyncCommand<SubtaskUpdateCommandSettings>
+internal class SubtaskUpdateCommand : TodoAsyncCommand<SubtaskUpdateCommandSettings>
 {
+    public SubtaskUpdateCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, SubtaskUpdateCommandSettings settings, CancellationToken cancellationToken)
     {
         if (!SubtaskCommandHelpers.TryParseIds(settings.TaskId, settings.SubtaskId, out var taskId, out var subtaskId))
@@ -215,8 +242,12 @@ internal class SubtaskCompleteCommandSettings : CommandSettings
     public required string SubtaskId { get; set; }
 }
 
-internal class SubtaskCompleteCommand : AsyncCommand<SubtaskCompleteCommandSettings>
+internal class SubtaskCompleteCommand : TodoAsyncCommand<SubtaskCompleteCommandSettings>
 {
+    public SubtaskCompleteCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, SubtaskCompleteCommandSettings settings, CancellationToken cancellationToken)
     {
         if (!SubtaskCommandHelpers.TryParseIds(settings.TaskId, settings.SubtaskId, out var taskId, out var subtaskId))
@@ -246,8 +277,12 @@ internal class SubtaskDeleteCommandSettings : CommandSettings
     public required string SubtaskId { get; set; }
 }
 
-internal class SubtaskDeleteCommand : AsyncCommand<SubtaskDeleteCommandSettings>
+internal class SubtaskDeleteCommand : TodoAsyncCommand<SubtaskDeleteCommandSettings>
 {
+    public SubtaskDeleteCommand(TodoService todoService) : base(todoService)
+    {
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context, SubtaskDeleteCommandSettings settings, CancellationToken cancellationToken)
     {
         if (!SubtaskCommandHelpers.TryParseIds(settings.TaskId, settings.SubtaskId, out var taskId, out var subtaskId))
