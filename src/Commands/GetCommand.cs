@@ -14,10 +14,8 @@ internal class GetCommand : AsyncCommand<GetCommandSettings>
 {
     public override async Task<int> ExecuteAsync(CommandContext context, GetCommandSettings settings, CancellationToken cancellationToken)
     {
-        if (!int.TryParse(settings.Id, out var todoItemId))
+        if (!CommandInputValidation.TryParsePositiveId(settings.Id, "todo item id", out var todoItemId))
         {
-            Console.WriteLine($"Invalid todo item id: {settings.Id}");
-
             return 1;
         }
 

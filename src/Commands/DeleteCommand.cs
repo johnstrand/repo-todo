@@ -14,7 +14,10 @@ internal class DeleteCommand : AsyncCommand<DeleteCommandSettings>
 {
     public override async Task<int> ExecuteAsync(CommandContext context, DeleteCommandSettings settings, CancellationToken cancellationToken)
     {
-        var todoItemId = int.Parse(settings.Id);
+        if (!CommandInputValidation.TryParsePositiveId(settings.Id, "todo item id", out var todoItemId))
+        {
+            return 1;
+        }
 
         var todoItem = await TodoService.GetTodoItem(todoItemId);
 

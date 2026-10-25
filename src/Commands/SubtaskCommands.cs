@@ -10,13 +10,7 @@ internal static class SubtaskCommandHelpers
 {
     public static bool TryParseTaskId(string value, out int taskId)
     {
-        if (int.TryParse(value, out taskId))
-        {
-            return true;
-        }
-
-        Console.WriteLine($"Invalid task id: {value}");
-        return false;
+        return CommandInputValidation.TryParsePositiveId(value, "task id", out taskId);
     }
 
     public static bool TryParseIds(string taskIdValue, string subtaskIdValue, out int taskId, out int subtaskId)
@@ -27,13 +21,7 @@ internal static class SubtaskCommandHelpers
             return false;
         }
 
-        if (int.TryParse(subtaskIdValue, out subtaskId))
-        {
-            return true;
-        }
-
-        Console.WriteLine($"Invalid subtask id: {subtaskIdValue}");
-        return false;
+        return CommandInputValidation.TryParsePositiveId(subtaskIdValue, "subtask id", out subtaskId);
     }
 }
 
@@ -106,7 +94,8 @@ internal class SubtaskListCommand : AsyncCommand<SubtaskListCommandSettings>
         TodoItemStatus? statusFilter = null;
         if (settings.Status is not null)
         {
-            if (!Enum.TryParse<TodoItemStatus>(settings.Status, ignoreCase: true, out var parsedStatus))
+            if (!Enum.TryParse<TodoItemStatus>(settings.Status, ignoreCase: true, out var parsedStatus) ||
+                !Enum.IsDefined(typeof(TodoItemStatus), parsedStatus))
             {
                 Console.WriteLine($"Unknown status: {settings.Status}");
                 return 1;

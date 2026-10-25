@@ -41,11 +41,24 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
 {
     public override async Task<int> ExecuteAsync(CommandContext context, ListCommandSettings settings, CancellationToken cancellationToken)
     {
+        if (settings.Skip is < 0)
+        {
+            Console.WriteLine("--skip must be zero or greater.");
+            return 1;
+        }
+
+        if (settings.Take is < 0)
+        {
+            Console.WriteLine("--take must be zero or greater.");
+            return 1;
+        }
+
         TodoItemStatus? statusFilter = null;
 
         if (settings.Status is not null)
         {
-            if (!Enum.TryParse<TodoItemStatus>(settings.Status, ignoreCase: true, out var parsedStatus))
+            if (!Enum.TryParse<TodoItemStatus>(settings.Status, ignoreCase: true, out var parsedStatus) ||
+                !Enum.IsDefined(typeof(TodoItemStatus), parsedStatus))
             {
                 Console.WriteLine($"Unknown status: {settings.Status}");
 
