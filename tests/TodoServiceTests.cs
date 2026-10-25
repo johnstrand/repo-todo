@@ -1,3 +1,4 @@
+using System.Text.Json;
 using LibGit2Sharp;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -5,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RepoTodo.Commands;
 using RepoTodo.Data;
 using RepoTodo.Services;
+using Spectre.Console.Cli;
 
 namespace RepoTodo.Tests;
 
@@ -222,15 +224,15 @@ public sealed class TodoServiceTests
     [TestMethod]
     public async Task CommandsCanBeInvokedInProcessWithInjectedServices()
     {
-        var helpResult = await TodoCommandApp.Create(_firstRepository).RunAsync(new[] { "--help" });
+        var helpResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(new[] { "--help" });
         Assert.AreEqual(0, helpResult);
 
-        var createResult = await TodoCommandApp.Create(_firstRepository).RunAsync(
+        var createResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(
             new[] { "create", "Command-layer task", "--body", "Created without a child process", "--tag", "unit" });
         Assert.AreEqual(0, createResult);
 
         var task = (await _firstRepository.ListTodoItems(titleFilter: "Command-layer task")).Single();
-        var addSubtaskResult = await TodoCommandApp.Create(_firstRepository).RunAsync(
+        var addSubtaskResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(
             new[] { "subtask", "add", task.TodoItemId.ToString(), "Command-layer subtask" });
         Assert.AreEqual(0, addSubtaskResult);
 
@@ -238,12 +240,136 @@ public sealed class TodoServiceTests
         Assert.IsNotNull(detail);
         Assert.AreEqual("Command-layer subtask", detail.Subtasks.Single().Title);
 
-        var invalidIdResult = await TodoCommandApp.Create(_firstRepository).RunAsync(new[] { "delete", "not-an-id" });
+        var invalidIdResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(new[] { "delete", "not-an-id" });
         Assert.AreNotEqual(0, invalidIdResult);
-        var invalidStatusResult = await TodoCommandApp.Create(_firstRepository).RunAsync(new[] { "list", "--status", "99" });
+        var invalidStatusResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(new[] { "list", "--status", "99" });
         Assert.AreNotEqual(0, invalidStatusResult);
-        var invalidPaginationResult = await TodoCommandApp.Create(_firstRepository).RunAsync(new[] { "list", "--skip", "-1" });
+        var invalidPaginationResult = await CreateCommandApp(_firstRepository, _firstRepositoryId).RunAsync(new[] { "list", "--skip", "-1" });
         Assert.AreNotEqual(0, invalidPaginationResult);
+    }
+
+    [TestMethod]
+    public async Task ExportImportPreservesAllFieldsAndAddsFreshRepositoryLocalIds()
+    {
+        var openItem = await AddTodoAsync(_firstRepository, "Open task", "Body text", TodoItemStatus.InProgress, "release", "ops");
+        var completedItem = await AddTodoAsync(_firstRepository, "Completed task", "Done", TodoItemStatus.Completed, "archive");
+        var openSubtask = await _firstRepository.AddSubtask(openItem.TodoItemId, "Open subtask");
+        var completedSubtask = await _firstRepository.AddSubtask(openItem.TodoItemId, "Completed subtask");
+        Assert.IsNotNull(openSubtask);
+        Assert.IsNotNull(completedSubtask);
+        await _firstRepository.UpdateSubtaskStatus(openItem.TodoItemId, completedSubtask.TodoItemSubtaskId, TodoItemStatus.Completed);
+        var existingTargetItem = await AddTodoAsync(_secondRepository, "Keep existing target item");
+
+        var export = new MemoryStream();
+        var exportedCount = await new TodoTransferService(_context, _firstRepositoryId).ExportAsync(export);
+        Assert.AreEqual(2, exportedCount);
+
+        using var json = JsonDocument.Parse(export.ToArray());
+        Assert.AreEqual(1, json.RootElement.GetProperty("formatVersion").GetInt32());
+        var exportedItems = json.RootElement.GetProperty("items");
+        Assert.AreEqual(2, exportedItems.GetArrayLength());
+        Assert.IsFalse(exportedItems[0].TryGetProperty("id", out _));
+        Assert.AreEqual("Completed", exportedItems[1].GetProperty("status").GetString());
+        Assert.AreEqual("Body text", exportedItems[0].GetProperty("body").GetString());
+        Assert.AreEqual(2, exportedItems[0].GetProperty("tags").GetArrayLength());
+        Assert.AreEqual(2, exportedItems[0].GetProperty("subtasks").GetArrayLength());
+
+        var import = new TodoTransferService(_context, _secondRepositoryId);
+        export.Position = 0;
+        Assert.AreEqual(2, await import.ImportAsync(export));
+
+        var importedItems = await _context.TodoItems
+            .Where(item => item.RepoId == _secondRepositoryId)
+            .Include(item => item.Subtasks)
+            .OrderBy(item => item.TodoItemId)
+            .ToListAsync();
+        Assert.HasCount(3, importedItems);
+        var importedOpenItem = importedItems.Single(item => item.Title == "Open task");
+        var importedCompletedItem = importedItems.Single(item => item.Title == "Completed task");
+        Assert.AreEqual("Body text", importedOpenItem.Body);
+        Assert.AreEqual(TodoItemStatus.InProgress, importedOpenItem.Status);
+        CollectionAssert.AreEqual(new[] { "release", "ops" }, importedOpenItem.Tags.ToArray());
+        Assert.AreNotEqual(openItem.TodoItemId, importedOpenItem.TodoItemId);
+        Assert.AreEqual(_secondRepositoryId, importedOpenItem.RepoId);
+        Assert.AreEqual(TodoItemStatus.Completed, importedCompletedItem.Status);
+        Assert.AreEqual(TodoItemStatus.Completed, importedOpenItem.Subtasks.Single(subtask => subtask.Title == "Completed subtask").Status);
+        Assert.AreEqual(existingTargetItem.TodoItemId, importedItems[0].TodoItemId);
+
+        export.Position = 0;
+        Assert.AreEqual(2, await import.ImportAsync(export));
+        Assert.HasCount(5, await _context.TodoItems.Where(item => item.RepoId == _secondRepositoryId).ToListAsync());
+    }
+
+    [TestMethod]
+    public async Task ImportRejectsUnsupportedOrInvalidDocumentsWithoutPartialWrites()
+    {
+        var service = new TodoTransferService(_context, _secondRepositoryId);
+        var unsupportedVersion = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+            """{"formatVersion":2,"exportedAtUtc":"2026-01-01T00:00:00Z","items":[]}"""));
+        await Assert.ThrowsAsync<InvalidDataException>(() => service.ImportAsync(unsupportedVersion));
+
+        var invalidSecondItem = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+            """{"formatVersion":1,"exportedAtUtc":"2026-01-01T00:00:00Z","items":[{"title":"Valid first","body":"","status":"NotStarted","tags":[],"subtasks":[]},{"title":"Invalid status","body":"","status":"Unknown","tags":[],"subtasks":[]}] }"""));
+        await Assert.ThrowsAsync<InvalidDataException>(() => service.ImportAsync(invalidSecondItem));
+
+        Assert.IsEmpty(await _context.TodoItems.Where(item => item.RepoId == _secondRepositoryId).ToListAsync());
+
+        var malformedJson = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{not json"));
+        await Assert.ThrowsAsync<JsonException>(() => service.ImportAsync(malformedJson));
+    }
+
+    [TestMethod]
+    public async Task ExportAndImportCommandsUseFilesAndProtectExistingExports()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "RepoTodo.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var exportPath = Path.Combine(root, "todos.json");
+
+        try
+        {
+            Assert.AreEqual(0, await CreateCommandApp(_firstRepository, _firstRepositoryId)
+                .RunAsync(new[] { "export", "--help" }));
+            Assert.AreEqual(0, await CreateCommandApp(_secondRepository, _secondRepositoryId)
+                .RunAsync(new[] { "import", "--help" }));
+
+            var task = await AddTodoAsync(_firstRepository, "Exported task", status: TodoItemStatus.Completed);
+            var subtask = await _firstRepository.AddSubtask(task.TodoItemId, "Exported subtask");
+            Assert.IsNotNull(subtask);
+
+            var exportResult = await CreateCommandApp(_firstRepository, _firstRepositoryId)
+                .RunAsync(new[] { "export", exportPath });
+            Assert.AreEqual(0, exportResult);
+            Assert.IsTrue(File.Exists(exportPath));
+
+            var existingFileResult = await CreateCommandApp(_firstRepository, _firstRepositoryId)
+                .RunAsync(new[] { "export", exportPath });
+            Assert.AreNotEqual(0, existingFileResult);
+
+            var forceExportResult = await CreateCommandApp(_firstRepository, _firstRepositoryId)
+                .RunAsync(new[] { "export", exportPath, "--force" });
+            Assert.AreEqual(0, forceExportResult);
+
+            var importResult = await CreateCommandApp(_secondRepository, _secondRepositoryId)
+                .RunAsync(new[] { "import", exportPath });
+            Assert.AreEqual(0, importResult);
+
+            var importedTask = (await _secondRepository.ListTodoItems(TodoItemStatus.Completed)).Single();
+            Assert.AreEqual(task.Title, importedTask.Title);
+            Assert.AreEqual(subtask.Title, importedTask.Subtasks.Single().Title);
+
+            var invalidImportResult = await CreateCommandApp(_secondRepository, _secondRepositoryId)
+                .RunAsync(new[] { "import", Path.Combine(root, "missing.json") });
+            Assert.AreNotEqual(0, invalidImportResult);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    private CommandApp CreateCommandApp(TodoService service, int repositoryId)
+    {
+        return TodoCommandApp.Create(service, new TodoTransferService(_context, repositoryId));
     }
 
     private static Task<TodoItem> AddTodoAsync(

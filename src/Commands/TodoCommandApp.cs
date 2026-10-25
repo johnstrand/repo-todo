@@ -5,10 +5,11 @@ namespace RepoTodo.Commands;
 
 internal static class TodoCommandApp
 {
-    public static CommandApp Create(TodoService todoService)
+    public static CommandApp Create(TodoService todoService, TodoTransferService transferService)
     {
         var typeRegistrar = new TypeRegistrar();
         typeRegistrar.RegisterInstance(typeof(TodoService), todoService);
+        typeRegistrar.RegisterInstance(typeof(TodoTransferService), transferService);
         var app = new CommandApp(typeRegistrar);
 
         app.Configure(config =>
@@ -34,6 +35,10 @@ internal static class TodoCommandApp
             });
             config.AddCommand<ListCommand>("list")
                 .WithDescription("List todo items.");
+            config.AddCommand<ExportCommand>("export")
+                .WithDescription("Export todo items and subtasks as versioned JSON.");
+            config.AddCommand<ImportCommand>("import")
+                .WithDescription("Import todo items and subtasks from a JSON export.");
             config.AddCommand<GetCommand>("get")
                 .WithDescription("Get a single todo item.");
             config.AddCommand<UpdateCommand>("update")

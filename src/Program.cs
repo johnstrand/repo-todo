@@ -37,7 +37,9 @@ try
         identifier.All(Uri.IsHexDigit) &&
         repo.Lookup<Commit>(identifier) is not null);
 
-    var app = TodoCommandApp.Create(new TodoService(todoContext, repoId));
+    var app = TodoCommandApp.Create(
+        new TodoService(todoContext, repoId),
+        new TodoTransferService(todoContext, repoId));
     return await app.RunAsync(args);
 }
 catch (Exception ex)

@@ -45,6 +45,8 @@ Use `--` to pass arguments to RepoTodo when invoking it through `dotnet run`.
 create <title> [-b|--body <body>] [-t|--tag <tag> ...]
 list [-s|--status <status>] [-j|--json] [--skip <count>] [--take <count>]
      [--title <text>] [--body <text>] [-t|--tag <tag> ...]
+export <file> [--force]
+import <file>
 get <id>
 update <id> [--title <title>] [--body <body>]
 complete <id>
@@ -61,7 +63,13 @@ dotnet run --project src/RepoTodo.csproj -- list --tag ops --tag release --skip 
 dotnet run --project src/RepoTodo.csproj -- get 3
 dotnet run --project src/RepoTodo.csproj -- update 3 --title "Review rollout" --body "Check the rollback plan"
 dotnet run --project src/RepoTodo.csproj -- complete 3
+dotnet run --project src/RepoTodo.csproj -- export todos.json
+dotnet run --project src/RepoTodo.csproj -- import todos.json
 ```
+
+`export` writes a versioned JSON backup containing every task status, body, tag, and subtask. Existing files are not overwritten unless `--force` is supplied. `import` adds the file's tasks and subtasks to the current working tree and assigns new local IDs; it does not replace existing todos. Importing the same file more than once adds duplicates.
+
+The JSON document has a `formatVersion` (currently `1`), an `exportedAtUtc` timestamp, and an `items` array. Task and subtask IDs are intentionally omitted so imports receive fresh IDs in the destination database.
 
 ## Subtask commands
 
