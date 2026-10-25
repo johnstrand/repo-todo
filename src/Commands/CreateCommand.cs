@@ -24,7 +24,7 @@ internal class CreateCommand : AsyncCommand<CreateCommandSettings>
             Title = settings.Title,
             Status = TodoItemStatus.NotStarted,
             Tags = [.. settings.Tags],
-            RemoteId = TodoService.RepoId
+            RepoId = TodoService.RepoId
         };
 
         var todoItem = await TodoService.AddTodoItem(newTodoItem);

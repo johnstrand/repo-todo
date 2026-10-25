@@ -24,7 +24,7 @@ internal class TodoContext : DbContext
         DbPath = Path.Join(dbDirectory, "todo.db");
     }
 
-    public DbSet<Repo> Remotes => Set<Repo>();
+    public DbSet<Repo> Repos => Set<Repo>();
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
     public DbSet<TodoItemSubtask> TodoItemSubtasks => Set<TodoItemSubtask>();
 
@@ -54,7 +54,7 @@ internal class Repo
 internal class TodoItem
 {
     public int TodoItemId { get; set; }
-    public int RemoteId { get; set; }
+    public int? RepoId { get; set; }
     public required string Title { get; set; }
     public TodoItemStatus Status { get; set; }
     public ICollection<string> Tags { get; set; } = [];

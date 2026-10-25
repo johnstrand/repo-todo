@@ -10,12 +10,12 @@ internal static class TodoService
     public static void EnsureRepoExists(string repoIdentifier)
     {
         var context = TodoContext.Instance;
-        var existingRepo = context.Remotes.FirstOrDefault(r => r.Identifier == repoIdentifier);
+        var existingRepo = context.Repos.FirstOrDefault(r => r.Identifier == repoIdentifier);
 
         if (existingRepo is null)
         {
             var newRepo = new Repo { Identifier = repoIdentifier };
-            context.Remotes.Add(newRepo);
+            context.Repos.Add(newRepo);
             context.SaveChanges();
             RepoId = newRepo.RepoId;
         }

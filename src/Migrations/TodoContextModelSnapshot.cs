@@ -28,16 +28,13 @@ namespace RepoTodo.Migrations
 
                     b.HasKey("RepoId");
 
-                    b.ToTable("Remotes");
+                    b.ToTable("Repos");
                 });
 
             modelBuilder.Entity("RepoTodo.Data.TodoItem", b =>
                 {
                     b.Property<int>("TodoItemId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RemoteId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("RepoId")
