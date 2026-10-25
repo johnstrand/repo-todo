@@ -44,7 +44,13 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
                 id = t.TodoItemId,
                 title = t.Title,
                 status = t.Status.ToString(),
-                tags = t.Tags
+                tags = t.Tags,
+                subtasks = t.Subtasks.Select(s => new
+                {
+                    id = s.TodoItemSubtaskId,
+                    title = s.Title,
+                    status = s.Status.ToString()
+                })
             });
 
             Console.WriteLine(JsonSerializer.Serialize(items));
@@ -66,6 +72,16 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
                 : string.Empty;
 
             Console.WriteLine($"#{todoItem.TodoItemId} [{todoItem.Status}]{tags}: {todoItem.Title}");
+
+            if (todoItem.Status == TodoItemStatus.Completed)
+            {
+                continue;
+            }
+
+            foreach (var subtask in todoItem.Subtasks.Where(s => s.Status != TodoItemStatus.Completed))
+            {
+                Console.WriteLine($"    - subtask #{subtask.TodoItemSubtaskId} of todo #{todoItem.TodoItemId}: {subtask.Title} [{subtask.Status}]");
+            }
         }
 
         return 0;

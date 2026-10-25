@@ -18,16 +18,27 @@ internal class CompleteCommand : AsyncCommand<CompleteCommandSettings>
 
         var todoItem = await TodoService.GetTodoItem(todoItemId);
 
-        if (todoItem is null)
+        if (todoItem is not null)
+        {
+            await TodoService.UpdateTodoItemStatus(todoItemId, TodoItemStatus.Completed);
+
+            Console.WriteLine($"Completed todo item #{todoItem.TodoItemId}: {todoItem.Title}");
+
+            return 0;
+        }
+
+        var subtask = await TodoService.GetSubtask(todoItemId);
+
+        if (subtask is null)
         {
             Console.WriteLine($"No todo item found with id {todoItemId}.");
 
             return 1;
         }
 
-        await TodoService.UpdateTodoItemStatus(todoItemId, TodoItemStatus.Completed);
+        await TodoService.UpdateSubtaskStatus(todoItemId, TodoItemStatus.Completed);
 
-        Console.WriteLine($"Completed todo item #{todoItem.TodoItemId}: {todoItem.Title}");
+        Console.WriteLine($"Completed subtask #{subtask.TodoItemSubtaskId} of todo item #{subtask.TodoItemId}: {subtask.Title}");
 
         return 0;
     }

@@ -32,6 +32,8 @@ try
         config.SetApplicationName("RepoTodo");
         config.AddCommand<RepoTodo.Commands.CreateCommand>("create")
             .WithDescription("Create a new todo item.");
+        config.AddCommand<RepoTodo.Commands.AddSubtaskCommand>("addsubtask")
+            .WithDescription("Add a subtask to a todo item.");
         config.AddCommand<RepoTodo.Commands.ListCommand>("list")
             .WithDescription("List todo items.");
         config.AddCommand<RepoTodo.Commands.CompleteCommand>("complete")
