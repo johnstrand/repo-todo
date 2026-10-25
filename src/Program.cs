@@ -32,8 +32,22 @@ try
         config.SetApplicationName("RepoTodo");
         config.AddCommand<RepoTodo.Commands.CreateCommand>("create")
             .WithDescription("Create a new todo item.");
-        config.AddCommand<RepoTodo.Commands.AddSubtaskCommand>("addsubtask")
-            .WithDescription("Add a subtask to a todo item.");
+        config.AddBranch("subtask", branch =>
+        {
+            branch.SetDescription("Manage todo subtasks.");
+            branch.AddCommand<RepoTodo.Commands.SubtaskAddCommand>("add")
+                .WithDescription("Add a subtask to a todo item.");
+            branch.AddCommand<RepoTodo.Commands.SubtaskListCommand>("list")
+                .WithDescription("List subtasks for a todo item.");
+            branch.AddCommand<RepoTodo.Commands.SubtaskGetCommand>("get")
+                .WithDescription("Get a subtask.");
+            branch.AddCommand<RepoTodo.Commands.SubtaskUpdateCommand>("update")
+                .WithDescription("Update a subtask.");
+            branch.AddCommand<RepoTodo.Commands.SubtaskCompleteCommand>("complete")
+                .WithDescription("Mark a subtask as completed.");
+            branch.AddCommand<RepoTodo.Commands.SubtaskDeleteCommand>("delete")
+                .WithDescription("Delete a subtask.");
+        });
         config.AddCommand<RepoTodo.Commands.ListCommand>("list")
             .WithDescription("List todo items.");
         config.AddCommand<RepoTodo.Commands.GetCommand>("get")

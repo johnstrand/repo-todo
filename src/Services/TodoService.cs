@@ -87,11 +87,35 @@ internal static class TodoService
         return subtask;
     }
 
-    public static async Task<TodoItemSubtask?> GetSubtask(int subtaskId)
+    public static async Task<List<TodoItemSubtask>> ListSubtasks(int parentTodoItemId, TodoItemStatus? statusFilter = null)
     {
-        var context = TodoContext.Instance;
+        var subtasksQuery = TodoContext.Instance.TodoItemSubtasks
+            .Where(s => s.TodoItemId == parentTodoItemId);
 
-        return await context.TodoItemSubtasks.FirstOrDefaultAsync(s => s.TodoItemSubtaskId == subtaskId);
+        subtasksQuery = statusFilter.HasValue
+            ? subtasksQuery.Where(s => s.Status == statusFilter.Value)
+            : subtasksQuery.Where(s => s.Status != TodoItemStatus.Completed);
+
+        return await subtasksQuery.OrderBy(s => s.TodoItemSubtaskId).ToListAsync();
+    }
+
+    public static async Task<TodoItemSubtask?> GetSubtask(int parentTodoItemId, int subtaskId)
+    {
+        return await TodoContext.Instance.TodoItemSubtasks
+            .FirstOrDefaultAsync(s => s.TodoItemId == parentTodoItemId && s.TodoItemSubtaskId == subtaskId);
+    }
+
+    public static async Task UpdateSubtaskTitle(int parentTodoItemId, int subtaskId, string title)
+    {
+        var subtask = await GetSubtask(parentTodoItemId, subtaskId);
+
+        if (subtask is null)
+        {
+            return;
+        }
+
+        subtask.Title = title;
+        await TodoContext.Instance.SaveChangesAsync();
     }
 
     public static async Task UpdateTodoItem(int todoItemId, string? title = null, string? body = null)
@@ -131,10 +155,9 @@ internal static class TodoService
         await context.SaveChangesAsync();
     }
 
-    public static async Task UpdateSubtaskStatus(int subtaskId, TodoItemStatus status)
+    public static async Task UpdateSubtaskStatus(int parentTodoItemId, int subtaskId, TodoItemStatus status)
     {
-        var context = TodoContext.Instance;
-        var subtask = await context.TodoItemSubtasks.FirstOrDefaultAsync(s => s.TodoItemSubtaskId == subtaskId);
+        var subtask = await GetSubtask(parentTodoItemId, subtaskId);
 
         if (subtask is null)
         {
@@ -142,7 +165,23 @@ internal static class TodoService
         }
 
         subtask.Status = status;
+        await TodoContext.Instance.SaveChangesAsync();
+    }
+
+    public static async Task<TodoItemSubtask?> DeleteSubtask(int parentTodoItemId, int subtaskId)
+    {
+        var context = TodoContext.Instance;
+        var subtask = await GetSubtask(parentTodoItemId, subtaskId);
+
+        if (subtask is null)
+        {
+            return null;
+        }
+
+        context.TodoItemSubtasks.Remove(subtask);
         await context.SaveChangesAsync();
+
+        return subtask;
     }
 
     public static async Task DeleteTodoItem(int todoItemId)

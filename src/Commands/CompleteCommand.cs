@@ -14,7 +14,11 @@ internal class CompleteCommand : AsyncCommand<CompleteCommandSettings>
 {
     public override async Task<int> ExecuteAsync(CommandContext context, CompleteCommandSettings settings, CancellationToken cancellationToken)
     {
-        var todoItemId = int.Parse(settings.Id);
+        if (!int.TryParse(settings.Id, out var todoItemId))
+        {
+            Console.WriteLine($"Invalid todo item id: {settings.Id}");
+            return 1;
+        }
 
         var todoItem = await TodoService.GetTodoItem(todoItemId);
 
@@ -27,19 +31,7 @@ internal class CompleteCommand : AsyncCommand<CompleteCommandSettings>
             return 0;
         }
 
-        var subtask = await TodoService.GetSubtask(todoItemId);
-
-        if (subtask is null)
-        {
-            Console.WriteLine($"No todo item found with id {todoItemId}.");
-
-            return 1;
-        }
-
-        await TodoService.UpdateSubtaskStatus(todoItemId, TodoItemStatus.Completed);
-
-        Console.WriteLine($"Completed subtask #{subtask.TodoItemSubtaskId} of todo item #{subtask.TodoItemId}: {subtask.Title}");
-
-        return 0;
+        Console.WriteLine($"No todo item found with id {todoItemId}.");
+        return 1;
     }
 }
