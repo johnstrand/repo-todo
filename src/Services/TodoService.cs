@@ -43,6 +43,7 @@ internal static class TodoService
     public static async Task<TodoItem> AddTodoItem(TodoItem todoItem)
     {
         var context = TodoContext.Instance;
+        todoItem.RepoId = RepoId;
         context.TodoItems.Add(todoItem);
         await context.SaveChangesAsync();
 
@@ -52,7 +53,9 @@ internal static class TodoService
     public static async Task<List<TodoItem>> ListTodoItems(TodoItemStatus? statusFilter = null, int? skip = null, int? take = null)
     {
         var context = TodoContext.Instance;
-        var itemsQuery = context.TodoItems.AsQueryable().Include(t => t.Subtasks);
+        var itemsQuery = context.TodoItems
+            .Where(t => t.RepoId == RepoId)
+            .Include(t => t.Subtasks);
 
         IQueryable<TodoItem> filteredQuery = statusFilter.HasValue
             ? itemsQuery.Where(t => t.Status == statusFilter.Value)
@@ -75,13 +78,15 @@ internal static class TodoService
     {
         var context = TodoContext.Instance;
 
-        return await context.TodoItems.FirstOrDefaultAsync(t => t.TodoItemId == todoItemId);
+        return await context.TodoItems
+            .FirstOrDefaultAsync(t => t.TodoItemId == todoItemId && t.RepoId == RepoId);
     }
 
     public static async Task<TodoItemSubtask?> AddSubtask(int parentTodoItemId, string title)
     {
         var context = TodoContext.Instance;
-        var parentTodoItem = await context.TodoItems.FirstOrDefaultAsync(t => t.TodoItemId == parentTodoItemId);
+        var parentTodoItem = await context.TodoItems
+            .FirstOrDefaultAsync(t => t.TodoItemId == parentTodoItemId && t.RepoId == RepoId);
 
         if (parentTodoItem is null)
         {
@@ -105,7 +110,8 @@ internal static class TodoService
     public static async Task<List<TodoItemSubtask>> ListSubtasks(int parentTodoItemId, TodoItemStatus? statusFilter = null)
     {
         var subtasksQuery = TodoContext.Instance.TodoItemSubtasks
-            .Where(s => s.TodoItemId == parentTodoItemId);
+            .Where(s => s.TodoItemId == parentTodoItemId &&
+                s.TodoItem != null && s.TodoItem.RepoId == RepoId);
 
         subtasksQuery = statusFilter.HasValue
             ? subtasksQuery.Where(s => s.Status == statusFilter.Value)
@@ -117,7 +123,9 @@ internal static class TodoService
     public static async Task<TodoItemSubtask?> GetSubtask(int parentTodoItemId, int subtaskId)
     {
         return await TodoContext.Instance.TodoItemSubtasks
-            .FirstOrDefaultAsync(s => s.TodoItemId == parentTodoItemId && s.TodoItemSubtaskId == subtaskId);
+            .FirstOrDefaultAsync(s => s.TodoItemId == parentTodoItemId &&
+                s.TodoItemSubtaskId == subtaskId &&
+                s.TodoItem != null && s.TodoItem.RepoId == RepoId);
     }
 
     public static async Task UpdateSubtaskTitle(int parentTodoItemId, int subtaskId, string title)
@@ -136,7 +144,8 @@ internal static class TodoService
     public static async Task UpdateTodoItem(int todoItemId, string? title = null, string? body = null)
     {
         var context = TodoContext.Instance;
-        var todoItem = await context.TodoItems.FirstOrDefaultAsync(t => t.TodoItemId == todoItemId);
+        var todoItem = await context.TodoItems
+            .FirstOrDefaultAsync(t => t.TodoItemId == todoItemId && t.RepoId == RepoId);
 
         if (todoItem is null)
         {
@@ -159,7 +168,8 @@ internal static class TodoService
     public static async Task UpdateTodoItemStatus(int todoItemId, TodoItemStatus status)
     {
         var context = TodoContext.Instance;
-        var todoItem = await context.TodoItems.FirstOrDefaultAsync(t => t.TodoItemId == todoItemId);
+        var todoItem = await context.TodoItems
+            .FirstOrDefaultAsync(t => t.TodoItemId == todoItemId && t.RepoId == RepoId);
 
         if (todoItem is null)
         {
@@ -202,7 +212,8 @@ internal static class TodoService
     public static async Task DeleteTodoItem(int todoItemId)
     {
         var context = TodoContext.Instance;
-        var todoItem = await context.TodoItems.FirstOrDefaultAsync(t => t.TodoItemId == todoItemId);
+        var todoItem = await context.TodoItems
+            .FirstOrDefaultAsync(t => t.TodoItemId == todoItemId && t.RepoId == RepoId);
 
         if (todoItem is null)
         {
