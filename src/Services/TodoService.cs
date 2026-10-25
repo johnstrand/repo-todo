@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RepoTodo.Data;
+using System.Text.Json;
 
 namespace RepoTodo.Services;
 
@@ -50,16 +51,55 @@ internal static class TodoService
         return todoItem;
     }
 
-    public static async Task<List<TodoItem>> ListTodoItems(TodoItemStatus? statusFilter = null, int? skip = null, int? take = null)
+    public static async Task<List<TodoItem>> ListTodoItems(
+        TodoItemStatus? statusFilter = null,
+        int? skip = null,
+        int? take = null,
+        string? titleFilter = null,
+        string? bodyFilter = null,
+        string[]? tagFilters = null)
     {
         var context = TodoContext.Instance;
-        var itemsQuery = context.TodoItems
-            .Where(t => t.RepoId == RepoId)
-            .Include(t => t.Subtasks);
+        IQueryable<TodoItem> itemsQuery;
+
+        if (tagFilters is { Length: > 0 })
+        {
+            var tagValuesJson = JsonSerializer.Serialize(tagFilters);
+            itemsQuery = context.TodoItems.FromSqlInterpolated($"""
+                SELECT * FROM "TodoItems" AS item
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM json_each(item."Tags") AS storedTag
+                    WHERE storedTag.value IN (
+                        SELECT value FROM json_each({tagValuesJson})
+                    )
+                )
+                """);
+        }
+        else
+        {
+            itemsQuery = context.TodoItems;
+        }
+
+        itemsQuery = itemsQuery.Where(t => t.RepoId == RepoId);
 
         IQueryable<TodoItem> filteredQuery = statusFilter.HasValue
             ? itemsQuery.Where(t => t.Status == statusFilter.Value)
             : itemsQuery.Where(t => t.Status != TodoItemStatus.Completed);
+
+        if (titleFilter is not null)
+        {
+            var titlePattern = ToContainsPattern(titleFilter);
+            filteredQuery = filteredQuery.Where(t => EF.Functions.Like(t.Title, titlePattern, "\\"));
+        }
+
+        if (bodyFilter is not null)
+        {
+            var bodyPattern = ToContainsPattern(bodyFilter);
+            filteredQuery = filteredQuery.Where(t => EF.Functions.Like(t.Body, bodyPattern, "\\"));
+        }
+
+        filteredQuery = filteredQuery.OrderBy(t => t.TodoItemId);
 
         if (skip.HasValue)
         {
@@ -71,7 +111,17 @@ internal static class TodoService
             filteredQuery = filteredQuery.Take(take.Value);
         }
 
-        return await filteredQuery.OrderBy(t => t.TodoItemId).ToListAsync();
+        return await filteredQuery.Include(t => t.Subtasks).ToListAsync();
+    }
+
+    private static string ToContainsPattern(string value)
+    {
+        var escapedValue = value
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
+
+        return $"%{escapedValue}%";
     }
 
     public static async Task<TodoItem?> GetTodoItem(int todoItemId)

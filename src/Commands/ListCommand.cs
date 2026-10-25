@@ -55,36 +55,13 @@ internal class ListCommand : AsyncCommand<ListCommandSettings>
             statusFilter = parsedStatus;
         }
 
-        var todoItems = await TodoService.ListTodoItems(statusFilter);
-
-        var filtered = todoItems.AsEnumerable();
-
-        if (settings.Title is not null)
-        {
-            filtered = filtered.Where(t => t.Title.Contains(settings.Title, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (settings.Body is not null)
-        {
-            filtered = filtered.Where(t => t.Body.Contains(settings.Body, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (settings.Tags is not null && settings.Tags.Length > 0)
-        {
-            filtered = filtered.Where(t => settings.Tags!.Any(tag => t.Tags.Contains(tag)));
-        }
-
-        if (settings.Skip.HasValue)
-        {
-            filtered = filtered.Skip(settings.Skip.Value);
-        }
-
-        if (settings.Take.HasValue)
-        {
-            filtered = filtered.Take(settings.Take.Value);
-        }
-
-        var items = filtered.ToList();
+        var items = await TodoService.ListTodoItems(
+            statusFilter,
+            settings.Skip,
+            settings.Take,
+            settings.Title,
+            settings.Body,
+            settings.Tags);
 
         if (settings.Json)
         {
