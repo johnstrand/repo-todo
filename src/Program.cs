@@ -36,6 +36,10 @@ try
             .WithDescription("Add a subtask to a todo item.");
         config.AddCommand<RepoTodo.Commands.ListCommand>("list")
             .WithDescription("List todo items.");
+        config.AddCommand<RepoTodo.Commands.GetCommand>("get")
+            .WithDescription("Get a single todo item.");
+        config.AddCommand<RepoTodo.Commands.UpdateCommand>("update")
+            .WithDescription("Update a todo item.");
         config.AddCommand<RepoTodo.Commands.CompleteCommand>("complete")
             .WithDescription("Mark a todo item as completed.");
         config.AddCommand<RepoTodo.Commands.DeleteCommand>("delete")

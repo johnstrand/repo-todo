@@ -94,6 +94,29 @@ internal static class TodoService
         return await context.TodoItemSubtasks.FirstOrDefaultAsync(s => s.TodoItemSubtaskId == subtaskId);
     }
 
+    public static async Task UpdateTodoItem(int todoItemId, string? title = null, string? body = null)
+    {
+        var context = TodoContext.Instance;
+        var todoItem = await context.TodoItems.FirstOrDefaultAsync(t => t.TodoItemId == todoItemId);
+
+        if (todoItem is null)
+        {
+            return;
+        }
+
+        if (title is not null)
+        {
+            todoItem.Title = title;
+        }
+
+        if (body is not null)
+        {
+            todoItem.Body = body;
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     public static async Task UpdateTodoItemStatus(int todoItemId, TodoItemStatus status)
     {
         var context = TodoContext.Instance;
